@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LLM Summarizer</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="container">
+    <div id="options">
+      <label>
+        Summary Length:
+        <input type="number" id="summaryLength" min="1" placeholder="e.g. 5">
+        <select id="lengthType">
+          <option value="sentences">Sentences</option>
+          <option value="words">Words</option>
+        </select>
+      </label>
+      <label>
+        Max Tokens:
+        <input type="number" id="maxTokens" min="1" placeholder="e.g. 300">
+      </label>
+      <label>
+        Custom Prompt:
+        <input type="text" id="customPrompt" placeholder="e.g. Summarize for a 5th grader">
+      </label>
+    </div>
+    <button id="summarizeBtn">Summarize Page</button>
+    <div id="loading" class="hidden">Summarizing...</div>
+    <div id="results" class="hidden">
+      <h2>Summary</h2>
+      <div id="summaries"></div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

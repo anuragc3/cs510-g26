@@ -1,0 +1,102 @@
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f7f7fa;
+    margin: 0;
+    min-width: 350px;
+    min-height: 320px;
+  }
+  
+  #container {
+    padding: 20px;
+  }
+  
+  #options {
+    margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  #options label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.98em;
+    color: #333;
+  }
+  
+  #options input[type="number"],
+  #options input[type="text"],
+  #options select {
+    border: 1px solid #cfd8dc;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 1em;
+    background: #fff;
+    transition: border 0.2s;
+  }
+  
+  #options input:focus,
+  #options select:focus {
+    border: 1.5px solid #4f8cff;
+    outline: none;
+  }
+  
+  button {
+    background: linear-gradient(90deg, #4f8cff, #6edb8f);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  
+  button:active {
+    transform: scale(0.97);
+  }
+  
+  #loading {
+    margin-top: 20px;
+    font-size: 1.1em;
+    color: #4f8cff;
+    animation: fadeIn 0.5s;
+  }
+  
+  #results {
+    margin-top: 20px;
+    animation: slideUp 0.5s;
+  }
+  
+  #summaries {
+    margin-top: 10px;
+  }
+  
+  .summary-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(79,140,255,0.08);
+    margin-bottom: 12px;
+    padding: 12px;
+    animation: fadeIn 0.7s;
+    transition: box-shadow 0.2s;
+  }
+  
+  .summary-card:hover {
+    box-shadow: 0 4px 16px rgba(79,140,255,0.15);
+  }
+  
+  .hidden {
+    display: none;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  
+  @keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
