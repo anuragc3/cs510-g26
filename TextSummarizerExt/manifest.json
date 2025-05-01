@@ -2,8 +2,11 @@
   "manifest_version": 3,
   "name": "Text Summarizer",
   "version": "1.0",
-  "description": "Summarize any page using LLMs, other Information Retrieval Techniques.",
-  "permissions": ["scripting", "activeTab"],
+  "description": "Summarize text content using various LLM models",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
@@ -11,13 +14,20 @@
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "128": "icons/icon128.png"
+      "128": "icon128.png"
     }
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "js": ["content.js"],
+      "type": "module"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["websiteRules.js"],
+      "matches": ["<all_urls>"]
     }
   ]
 }
