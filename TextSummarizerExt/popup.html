@@ -1,37 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>LLM Summarizer</title>
-  <link rel="stylesheet" href="popup.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SidePanelIR</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body>
-  <div id="container">
-    <div id="options">
-      <label>
-        Summary Length:
-        <input type="number" id="summaryLength" min="1" placeholder="e.g. 5">
-        <select id="lengthType">
-          <option value="sentences">Sentences</option>
-          <option value="words">Words</option>
-        </select>
-      </label>
-      <label>
-        Max Tokens:
-        <input type="number" id="maxTokens" min="1" placeholder="e.g. 300">
-      </label>
-      <label>
-        Custom Prompt:
-        <input type="text" id="customPrompt" placeholder="e.g. Summarize for a 5th grader">
-      </label>
+<body class="bg-white text-gray-800 font-sans" style="width: 300px; height: 400px; overflow: hidden;">
+
+  <div class="flex flex-col h-full">
+    <div class="bg-indigo-600 text-white p-4 text-center font-bold text-lg">SidePanelIR</div>
+
+    <div class="flex justify-around bg-gray-100 border-b">
+      <button id="tab-summary" class="tab-btn px-4 py-2 hover:bg-gray-200 font-medium">Summary</button>
+      <button id="tab-related" class="tab-btn px-4 py-2 hover:bg-gray-200 font-medium">Related</button>
+      <button id="tab-definitions" class="tab-btn px-4 py-2 hover:bg-gray-200 font-medium">Definitions</button>
+      <button id="tab-settings" class="tab-btn px-2 py-2 text-xs text-gray-500">⚙</button>
     </div>
-    <button id="summarizeBtn">Summarize Page</button>
-    <div id="loading" class="hidden">Summarizing...</div>
-    <div id="results" class="hidden">
-      <h2>Summary</h2>
-      <div id="summaries"></div>
+
+    <div id="panel-summary" class="tab-panel flex-1 p-4 overflow-y-auto hidden">
+      <button id="fetch-btn" class="mb-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Fetch Summary</button>
+      <div id="summary-content" class="text-sm whitespace-pre-wrap leading-relaxed bg-gray-50 p-3 rounded border"></div>
+    </div>
+
+    <div id="panel-related" class="tab-panel flex-1 p-4 overflow-y-auto hidden">
+      <ul id="related-content" class="list-disc pl-5 text-sm space-y-1"></ul>
+    </div>
+
+    <div id="panel-definitions" class="tab-panel flex-1 p-4 overflow-y-auto hidden">
+      <div id="definitions-content" class="space-y-2 text-sm"></div>
+    </div>
+
+    <div id="panel-settings" class="tab-panel flex-1 p-4 overflow-y-auto hidden">
+      <label for="apiKey" class="block mb-2 font-semibold">OpenAI API Key:</label>
+      <input id="apiKey" type="password" placeholder="sk-..." class="w-full p-2 border rounded mb-2">
+      <button id="saveKeyBtn" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Save Key</button>
+      <p id="saveStatus" class="text-sm mt-2 text-green-600 hidden">Saved!</p>
     </div>
   </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

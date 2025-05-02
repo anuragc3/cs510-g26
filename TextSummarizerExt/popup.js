@@ -1,152 +1,141 @@
-const summarizeBtn = document.getElementById('summarizeBtn');
-const loadingDiv = document.getElementById('loading');
-const resultsDiv = document.getElementById('results');
-const summariesDiv = document.getElementById('summaries');
 
-const summaryLengthInput = document.getElementById('summaryLength');
-const lengthTypeSelect = document.getElementById('lengthType');
-const maxTokensInput = document.getElementById('maxTokens');
-const customPromptInput = document.getElementById('customPrompt');
+document.addEventListener("DOMContentLoaded", () => {
+  const tabs = ["summary", "related", "definitions", "settings"];
 
-let models = [
-  { name: "OpenAI GPT-3.5", id: "gpt-3.5" } // TODO: Add more models / diff chatgpt models
-];
-
-// Replace with your actual LLM API endpoint and key
-const LLM_API_URL = "https://api.openai.com/v1/chat/completions";
-const LLM_API_KEY = "YOUR_OPENAI_API_KEY"; // Store securely in production!
-
-function showLoading(show) {
-  loadingDiv.classList.toggle('hidden', !show);
-  summarizeBtn.disabled = show;
-}
-
-function showResults(show) {
-  resultsDiv.classList.toggle('hidden', !show);
-}
-
-function renderSummaries(summaries) {
-  summariesDiv.innerHTML = '';
-  summaries.forEach(({ model, summary }) => {
-    const card = document.createElement('div');
-    card.className = 'summary-card';
-    card.innerHTML = `<strong>${model}</strong><br>${summary}`;
-    summariesDiv.appendChild(card);
+  tabs.forEach(tab => {
+    document.getElementById("tab-" + tab).addEventListener("click", () => {
+      tabs.forEach(t => {
+        document.getElementById("panel-" + t).classList.add("hidden");
+        document.getElementById("tab-" + t).classList.remove("border-b-2", "border-indigo-600");
+      });
+      document.getElementById("panel-" + tab).classList.remove("hidden");
+      document.getElementById("tab-" + tab).classList.add("border-b-2", "border-indigo-600");
+    });
   });
-}
 
-function buildPrompt() {
-  const summaryLength = summaryLengthInput.value;
-  const lengthType = lengthTypeSelect.value;
-  const customPrompt = customPromptInput.value.trim();
+  const apiKeyInput = document.getElementById("apiKey");
+  const saveBtn = document.getElementById("saveKeyBtn");
+  const saveStatus = document.getElementById("saveStatus");
 
-  // TODO: Add more detailed prompt to ask LLM to : 1. summarize the text
-  // 2.ask for relevant articles to read based on the text
-  // 3. ask for acronyms and their meanings based on the text provided, if any
-  // 4. send the data in a structured json format, we can parse it to display the response in the popup
-
-  let prompt = customPrompt || "Summarize the following text.";
-  if (summaryLength) {
-    prompt += ` Limit the summary to ${summaryLength} ${lengthType}.`;
-  }
-  return prompt;
-}
-
-function getMaxTokens() {
-  const maxTokens = maxTokensInput.value;
-  return maxTokens ? parseInt(maxTokens) : 300;
-}
-
-async function summarizeText(text, model, prompt, maxTokens) {
-  // For OpenAI API
-  // Will adapt for other LLMs
-
-  const response = await fetch(LLM_API_URL, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${LLM_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: "system", content: prompt },
-        { role: "user", content: text }
-      ],
-      max_tokens: maxTokens
-    })
-  });
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || "No summary available.";
-}
-
-async function handleEmptyText(tab) {
-  const result = await new Promise((resolve) => {
-    const message = 'No text could be extracted directly. Would you like to continue ? This would use additional resources to extract the text.';
-    if (confirm(message)) {
-      resolve(true);
-    } else {
-      resolve(false);
+  chrome.storage.local.get(["openaiApiKey"], (result) => {
+    if (result.openaiApiKey) {
+      apiKeyInput.value = result.openaiApiKey;
     }
   });
 
-  if (result) {
-    return {
-      text: `Please summarize the content from this URL: ${tab.url}`,
-      isUrlOnly: true
-    };
-  }
-  return null;
-}
+  saveBtn.addEventListener("click", () => {
+    const key = apiKeyInput.value.trim();
+    if (key.startsWith("sk-")) {
+      chrome.storage.local.set({ openai_api_key: key }, () => {
+        saveStatus.classList.remove("hidden");
+        setTimeout(() => saveStatus.classList.add("hidden"), 2000);
+      });
+    }
+  });
 
-summarizeBtn.addEventListener('click', async () => {
-  showLoading(true);
-  showResults(false);
 
-  const prompt = buildPrompt();
-  const maxTokens = getMaxTokens();
+  function callLLM(article) {
+    chrome.storage.local.get(["openaiApiKey"], (result) => {
+      const apiKey = result.openaiApiKey;
+      if (!apiKey) {
+        document.getElementById("summary-content").innerText = "Please provide an API key.";
+        return;
+      }
 
-  // Get active tab and send message to content.js
-  chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-    const currentTab = tabs[0];
-    
-    try {
-      const response = await chrome.tabs.sendMessage(
-        currentTab.id,
-        { 
-          action: "extractText",
-          url: currentTab.url
+      const prompt = `
+        Given the article below, do the following:
+        1. Summarize it in 3-5 sentences.
+        2. Suggest 3 related topics or articles.
+        3. Identify and define 5 key terms.
+        Article:
+        ${article}
+      `;
+
+      fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + apiKey
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.7
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const content = data.choices[0].message.content;
+        const parts = content.split(/(Summary:|Related Topics:|Definitions:)/).filter(Boolean);
+        const sections = { summary: "", related: "", definitions: "" };
+        for (let i = 0; i < parts.length; i += 2) {
+          const label = parts[i].trim().toLowerCase();
+          const value = parts[i + 1]?.trim() || "";
+          if (label.includes("summary")) sections.summary = value;
+          else if (label.includes("related")) sections.related = value;
+          else if (label.includes("definition")) sections.definitions = value;
         }
-      );
+        document.getElementById("panel-summary").innerText = sections.summary || "No summary found.";
+        document.getElementById("panel-related").innerText = sections.related || "No related topics found.";
+        document.getElementById("panel-definitions").innerText = sections.definitions || "No definitions found.";
+      })
+      .catch(err => {
+        document.getElementById("panel-summary").innerText = "Error fetching data.";
+        console.error(err);
+      });
+    });
+  }
+});
 
-      let textData;
-      if (!response || !response.text || response.text.trim() === '') {
-        textData = await handleEmptyText(currentTab);
-        if (!textData) {
-          showLoading(false);
+
+
+document.getElementById("fetch-btn").addEventListener("click", () => {
+  document.getElementById("summary-content").textContent = "Loading...";
+  document.getElementById("related-content").innerHTML = "";
+  document.getElementById("definitions-content").innerHTML = "";
+
+  chrome.storage.local.get("openai_api_key", ({ openai_api_key }) => {
+    if (!openai_api_key) {
+      document.getElementById("summary-content").textContent = "API key not set.";
+      return;
+    }
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.sendMessage(tabs[0].id, { action: "getArticleContent" }, async (response) => {
+        const articleText = response?.text || "";
+        if (!articleText) {
+          document.getElementById("summary-content").textContent = "Could not extract article content.";
           return;
         }
-      } else {
-        textData = response;
-      }
 
-      let summaries = [];
-      for (const model of models) {
-        const summary = await summarizeText(textData.text, model, prompt, maxTokens);
-        summaries.push({ 
-          model: model.name, 
-          summary,
-          isUrlOnly: textData.isUrlOnly || false 
-        });
-      }
-      
-      renderSummaries(summaries);
-      showLoading(false);
-      showResults(true);
-    } catch (error) {
-      console.error('Error during summarization:', error);
-      showLoading(false);
-      alert('An error occurred while trying to summarize the content. Please try again.');
-    }
+        const prompt = `Given the following article, perform the following tasks and respond in strict JSON format with these keys:\n\n1. summary: A concise summary of the article in 3–5 sentences.\n2. related: A list of 3 related articles with title and url.\n3. definitions: A list of 5 key terms from the article, each with term and definition.\n\nArticle:\n${articleText}`;
+
+        try {
+          const res = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer " + openai_api_key
+            },
+            body: JSON.stringify({
+              model: "gpt-3.5-turbo",
+              messages: [{ role: "user", content: prompt }],
+              temperature: 0.7
+            })
+          });
+          const data = await res.json();
+          const text = data.choices?.[0]?.message?.content || "{}";
+          const parsed = JSON.parse(text);
+
+          document.getElementById("summary-content").textContent = parsed.summary || "No summary.";
+          document.getElementById("related-content").innerHTML = (parsed.related || []).map(r => `<li><a class="text-blue-600 underline" href="${r.url}" target="_blank">${r.title}</a></li>`).join("");
+          document.getElementById("definitions-content").innerHTML = (parsed.definitions || []).map(d => `<div><strong>${d.term}:</strong> ${d.definition}</div>`).join("");
+
+        } catch (err) {
+          console.error(err);
+          document.getElementById("summary-content").textContent = "Error fetching summary.";
+        }
+      });
+    });
   });
 });
