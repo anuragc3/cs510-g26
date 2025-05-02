@@ -13,129 +13,131 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  const apiKeyInput = document.getElementById("apiKey");
+  const openaiInput = document.getElementById("apiKeyOpenAI");
+  const geminiInput = document.getElementById("apiKeyGemini");
   const saveBtn = document.getElementById("saveKeyBtn");
   const saveStatus = document.getElementById("saveStatus");
 
-  chrome.storage.local.get(["openaiApiKey"], (result) => {
-    if (result.openaiApiKey) {
-      apiKeyInput.value = result.openaiApiKey;
-    }
+  chrome.storage.local.get(["openai_api_key", "gemini_api_key"], (result) => {
+    if (result.openai_api_key) openaiInput.value = result.openai_api_key;
+    if (result.gemini_api_key) geminiInput.value = result.gemini_api_key;
   });
 
   saveBtn.addEventListener("click", () => {
-    const key = apiKeyInput.value.trim();
-    if (key.startsWith("sk-")) {
-      chrome.storage.local.set({ openai_api_key: key }, () => {
-        saveStatus.classList.remove("hidden");
-        setTimeout(() => saveStatus.classList.add("hidden"), 2000);
-      });
-    }
+    const openaiKey = openaiInput.value.trim();
+    const geminiKey = geminiInput.value.trim();
+    const items = {};
+    if (openaiKey.startsWith("sk-")) items.openai_api_key = openaiKey;
+    if (geminiKey) items.gemini_api_key = geminiKey;
+    chrome.storage.local.set(items, () => {
+      saveStatus.classList.remove("hidden");
+      setTimeout(() => saveStatus.classList.add("hidden"), 2000);
+    });
   });
 
+  document.getElementById("fetch-btn").addEventListener("click", () => {
+    document.getElementById("summary-content").innerHTML = "Loading...";
+    document.getElementById("related-content").innerHTML = "";
+    document.getElementById("definitions-content").innerHTML = "";
 
-  function callLLM(article) {
-    chrome.storage.local.get(["openaiApiKey"], (result) => {
-      const apiKey = result.openaiApiKey;
-      if (!apiKey) {
-        document.getElementById("summary-content").innerText = "Please provide an API key.";
+    chrome.storage.local.get(["openai_api_key", "gemini_api_key"], ({ openai_api_key, gemini_api_key }) => {
+      if (!openai_api_key && !gemini_api_key) {
+        document.getElementById("summary-content").innerText = "Please provide at least one API key.";
         return;
       }
 
-      const prompt = `
-        Given the article below, do the following:
-        1. Summarize it in 3-5 sentences.
-        2. Suggest 3 related topics or articles.
-        3. Identify and define 5 key terms.
-        Article:
-        ${article}
-      `;
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "getArticleContent" }, async (response) => {
+          const article = response?.text || "";
+          if (!article) {
+            document.getElementById("summary-content").innerText = "Could not extract article content.";
+            return;
+          }
 
-      fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + apiKey
-        },
-        body: JSON.stringify({
-          model: "gpt-4",
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.7
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        const content = data.choices[0].message.content;
-        const parts = content.split(/(Summary:|Related Topics:|Definitions:)/).filter(Boolean);
-        const sections = { summary: "", related: "", definitions: "" };
-        for (let i = 0; i < parts.length; i += 2) {
-          const label = parts[i].trim().toLowerCase();
-          const value = parts[i + 1]?.trim() || "";
-          if (label.includes("summary")) sections.summary = value;
-          else if (label.includes("related")) sections.related = value;
-          else if (label.includes("definition")) sections.definitions = value;
-        }
-        document.getElementById("panel-summary").innerText = sections.summary || "No summary found.";
-        document.getElementById("panel-related").innerText = sections.related || "No related topics found.";
-        document.getElementById("panel-definitions").innerText = sections.definitions || "No definitions found.";
-      })
-      .catch(err => {
-        document.getElementById("panel-summary").innerText = "Error fetching data.";
-        console.error(err);
-      });
-    });
-  }
-});
+          const prompt = `Given the following article, perform the following tasks and respond in strict JSON format with these keys:
 
+1. summary: A concise summary of the article in 3–5 sentences.
+2. related: A list of 3 related articles with title and url.
+3. definitions: A list of 5 key terms from the article, each with term and definition.
 
+Article:
+${article}`;
 
-document.getElementById("fetch-btn").addEventListener("click", () => {
-  document.getElementById("summary-content").textContent = "Loading...";
-  document.getElementById("related-content").innerHTML = "";
-  document.getElementById("definitions-content").innerHTML = "";
+          const tasks = [];
 
-  chrome.storage.local.get("openai_api_key", ({ openai_api_key }) => {
-    if (!openai_api_key) {
-      document.getElementById("summary-content").textContent = "API key not set.";
-      return;
-    }
+          if (openai_api_key) {
+            tasks.push(
+              fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": "Bearer " + openai_api_key
+                },
+                body: JSON.stringify({
+                  model: "gpt-3.5-turbo",
+                  messages: [{ role: "user", content: prompt }],
+                  temperature: 0.7
+                })
+              })
+                .then(res => res.json())
+                .then(data => {
+                  const content = data.choices?.[0]?.message?.content || "{}";
+                  return { source: "OpenAI", parsed: JSON.parse(content) };
+                })
+                .catch(err => {
+                  console.error("OpenAI Error:", err);
+                  return { source: "OpenAI", error: true };
+                })
+            );
+          }
 
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.sendMessage(tabs[0].id, { action: "getArticleContent" }, async (response) => {
-        const articleText = response?.text || "";
-        if (!articleText) {
-          document.getElementById("summary-content").textContent = "Could not extract article content.";
-          return;
-        }
+          if (gemini_api_key) {
+            tasks.push(
+              fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + gemini_api_key, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }]
+                })
+              })
+                .then(res => res.json())
+                .then(data => {
+                  let geminiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+                  // Strip markdown code block if present
+                  const match = geminiText.match(/```json\s*([\s\S]*?)\s*```/i);
+                  if (match && match[1]) {
+                    geminiText = match[1].trim();
+                  }
 
-        const prompt = `Given the following article, perform the following tasks and respond in strict JSON format with these keys:\n\n1. summary: A concise summary of the article in 3–5 sentences.\n2. related: A list of 3 related articles with title and url.\n3. definitions: A list of 5 key terms from the article, each with term and definition.\n\nArticle:\n${articleText}`;
+                  return { source: "Gemini", parsed: JSON.parse(geminiText) };
+                })
+                .catch(err => {
+                  console.error("Gemini Error:", err);
+                  return { source: "Gemini", error: true };
+                })
+            );
+          }
 
-        try {
-          const res = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + openai_api_key
-            },
-            body: JSON.stringify({
-              model: "gpt-3.5-turbo",
-              messages: [{ role: "user", content: prompt }],
-              temperature: 0.7
-            })
-          });
-          const data = await res.json();
-          const text = data.choices?.[0]?.message?.content || "{}";
-          const parsed = JSON.parse(text);
+          const results = await Promise.all(tasks);
 
-          document.getElementById("summary-content").textContent = parsed.summary || "No summary.";
-          document.getElementById("related-content").innerHTML = (parsed.related || []).map(r => `<li><a class="text-blue-600 underline" href="${r.url}" target="_blank">${r.title}</a></li>`).join("");
-          document.getElementById("definitions-content").innerHTML = (parsed.definitions || []).map(d => `<div><strong>${d.term}:</strong> ${d.definition}</div>`).join("");
+          document.getElementById("summary-content").innerHTML = results.map(r =>
+            `<div class="mb-4"><h3 class="font-bold">${r.source}</h3>
+              <div>${r.error ? "Error fetching data." : r.parsed.summary}</div></div>`).join("");
 
-        } catch (err) {
-          console.error(err);
-          document.getElementById("summary-content").textContent = "Error fetching summary.";
-        }
+          document.getElementById("related-content").innerHTML = results.map(r =>
+            `<div class="mb-4"><h3 class="font-bold">${r.source}</h3><ul class="list-disc pl-5">
+              ${(r.parsed?.related || []).map(link => `<li><a href="${link.url}" target="_blank" class="text-blue-600 underline">${link.title}</a></li>`).join("")}
+            </ul></div>`).join("");
+
+          document.getElementById("definitions-content").innerHTML = results.map(r =>
+            `<div class="mb-4"><h3 class="font-bold">${r.source}</h3>
+              ${(r.parsed?.definitions || []).map(d => `<div><strong>${d.term}:</strong> ${d.definition}</div>`).join("")}
+            </div>`).join("");
+        });
       });
     });
   });
 });
+
+
+
