@@ -231,38 +231,54 @@ ${article}`;
 
 
 
-
 function setupTTSControls(textSourceSelector) {
   const toggleBtn = document.getElementById("tts-toggle");
   const stopBtn = document.getElementById("tts-stop");
   const synth = window.speechSynthesis;
-  let utterance;
+
   let isPlaying = false;
   let isPaused = false;
-å
+  let utterances = [];
+  let currentIndex = 0;
+
+  const voices = synth.getVoices();
+  const preferredVoice = voices.find(v => v.lang === "en-US" && v.name === "Google UK English Female");
+
   toggleBtn.textContent = "▶️ Play Summary";
+
+  const speakNextChunk = () => {
+    if (currentIndex >= utterances.length) {
+      isPlaying = false;
+      isPaused = false;
+      toggleBtn.textContent = "▶️ Play Summary";
+      return;
+    }
+
+    const utterance = utterances[currentIndex];
+    utterance.voice = preferredVoice;
+    utterance.onend = () => {
+      currentIndex++;
+      speakNextChunk();
+    };
+
+    synth.speak(utterance);
+  };
 
   toggleBtn.onclick = () => {
     const text = document.querySelector(textSourceSelector).innerText;
 
     if (!isPlaying) {
-      utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = "en-US";
-      const voices = speechSynthesis.getVoices();
-      const preferredVoice = voices.find(v => v.name === "Google UK English Female");
-      utterance.voice = preferredVoice;
+      // Reset state
+      synth.cancel();
+      const sentences = text.match(/[^.!?]+[.!?]*/g) || [text]; // split by sentence
+      utterances = sentences.map(s => new SpeechSynthesisUtterance(s.trim()));
+      currentIndex = 0;
+
       isPlaying = true;
       isPaused = false;
       toggleBtn.textContent = "⏸️ Pause";
 
-      utterance.onend = () => {
-        isPlaying = false;
-        isPaused = false;
-        toggleBtn.textContent = "▶️ Play Summary";
-      };
-
-      synth.cancel();
-      synth.speak(utterance);
+      speakNextChunk();
 
     } else if (!isPaused) {
       synth.pause();
@@ -279,6 +295,7 @@ function setupTTSControls(textSourceSelector) {
     synth.cancel();
     isPlaying = false;
     isPaused = false;
+    currentIndex = 0;
     toggleBtn.textContent = "▶️ Play Summary";
   };
 }
