@@ -244,7 +244,7 @@ function setupTTSControls(textSourceSelector) {
   let utterance;
   let isPlaying = false;
   let isPaused = false;
-å
+  
   toggleBtn.textContent = "▶️ Play Summary";
 
   toggleBtn.onclick = () => {
