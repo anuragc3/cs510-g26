@@ -19,7 +19,27 @@
     </div>
 
     <div id="panel-summary" class="tab-panel flex-1 p-4 overflow-y-auto hidden">
-      <button id="fetch-btn" class="mb-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Fetch Summary</button>
+      <label class="block text-sm mb-1 font-medium">Summary Length Limit (words):</label>
+      <input id="summary-limit" type="number" class="w-full p-2 border rounded mb-3" placeholder="e.g., 100" />
+
+      <label class="block text-sm mb-1 font-medium">Additional Instructions:</label>
+      <input id="additional-prompts" type="text" class="w-full p-2 border rounded mb-3" placeholder="e.g., emphasize on ..." />
+
+      <button id="fetch-btn" class="mb-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+        Fetch Summary
+      </button>
+
+      <div id="loading" class="hidden text-sm text-indigo-600 flex items-center space-x-2 mb-3 transition-opacity duration-300">
+        <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+          viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor"
+            d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z">
+          </path>
+        </svg>
+        <span>Fetching summary...</span>
+      </div>
+      
       <div id="summary-content" class="text-sm whitespace-pre-wrap leading-relaxed bg-gray-50 p-3 rounded border"></div>
     </div>
 
@@ -32,15 +52,14 @@
     </div>
 
     <div id="panel-settings" class="tab-panel flex-1 p-4 overflow-y-auto hidden">
+      <label for="apiKeyOpenAI" class="block mb-1 font-semibold">OpenAI API Key:</label>
+      <input id="apiKeyOpenAI" type="password" placeholder="sk-..." class="w-full p-2 border rounded mb-2">
+
+      <label for="apiKeyGemini" class="block mb-1 font-semibold">Gemini API Key:</label>
+      <input id="apiKeyGemini" type="text" placeholder="AIza..." class="w-full p-2 border rounded mb-2">
+
+      <button id="saveKeyBtn" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Save Key</button>
       
-    <label for="apiKeyOpenAI" class="block mb-1 font-semibold">OpenAI API Key:</label>
-    <input id="apiKeyOpenAI" type="password" placeholder="sk-..." class="w-full p-2 border rounded mb-2">
-
-    <label for="apiKeyGemini" class="block mb-1 font-semibold">Gemini API Key:</label>
-    <input id="apiKeyGemini" type="text" placeholder="AIza..." class="w-full p-2 border rounded mb-2">
-
-    <button id="saveKeyBtn" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Save Key</button>
-    
       <p id="saveStatus" class="text-sm mt-2 text-green-600 hidden">Saved!</p>
     </div>
   </div>

@@ -39,6 +39,11 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("summary-content").innerHTML = "Loading...";
     document.getElementById("related-content").innerHTML = "";
     document.getElementById("definitions-content").innerHTML = "";
+    const limitInput = document.getElementById("summary-limit").value.trim();
+    const extraPromptInput = document.getElementById("additional-prompts").value.trim();
+
+    const limit = !limitInput || parseInt(limitInput, 10) < 100 ? 100 : parseInt(limitInput, 10);
+    const extraPrompt = extraPromptInput === "" ? "" : `\n\n The summary should have a focus on - ${extraPrompt}`;
 
     chrome.storage.local.get(["openai_api_key", "gemini_api_key"], ({ openai_api_key, gemini_api_key }) => {
       if (!openai_api_key && !gemini_api_key) {
@@ -56,12 +61,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
           const prompt = `Given the following article, perform the following tasks and respond in strict JSON format with these keys:
 
-1. summary: A concise summary of the article in 3–5 sentences.
+1. summary: A concise summary of the article in under ${limit} words. .
 2. related: A list of 3 related articles with title and url.
 3. definitions: A list of 5 key terms from the article, each with term and definition.
 
 Article:
-${article}`;
+${article}. ${extraPrompt}`;
 
           const tasks = [];
 
