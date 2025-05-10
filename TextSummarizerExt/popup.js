@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const extraPromptInput = document.getElementById("additional-prompts").value.trim();
 
     const limit = !limitInput || parseInt(limitInput, 10) < 100 ? 100 : parseInt(limitInput, 10);
-    const extraPrompt = extraPromptInput === "" ? "" : `\n\n The summary should have a focus on - ${extraPrompt}`;
+    const extraPrompt = extraPromptInput === "" ? "" : `\n\n The summary should have a focus on - ${extraPromptInput}`;
 
     chrome.storage.local.get(["openai_api_key", "gemini_api_key"], ({ openai_api_key, gemini_api_key }) => {
       if (!openai_api_key && !gemini_api_key) {
