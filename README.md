@@ -1,9 +1,9 @@
 # 🔍 Text Summarizer Chrome Extension
 
-**CS 510 - Advanced Information Retrieval — Development Track Project**  
-Team G26 — UIUC
+**CS 510 - Advanced Information Retrieval : Development Track Project**  
+Team G26
 
-A Chrome extension that uses large language models (LLMs) to extract and summarize the main content of any web page. It also retrieves related articles, definitions, and optionally provides a text-to-speech (TTS) version of the summary. Designed for researchers, students, and readers who want to quickly determine whether an article is worth their time—without switching tabs or dealing with clickbait.
+A Chrome extension that uses large language models (LLMs) to extract and summarize the main content of any web page. It also retrieves related articles, definitions, and optionally provides a text-to-speech (TTS) version of the summary. Designed for researchers, students, and readers who want to quickly determine whether an article is worth their time, without switching tabs or dealing with clickbait.
 
 ---
 
