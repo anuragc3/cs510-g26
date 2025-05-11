@@ -73,7 +73,7 @@ Your keys will be stored locally using Chrome’s extension storage.
 ### ⚙ Settings Panel
 
 - Enter and save your API keys.
-- Toggle features (coming soon, e.g., TTS, feedback logging).
+- Toggle features (coming soon).
 
 ---
 
